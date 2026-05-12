@@ -86,6 +86,7 @@ export class StorageManager {
   private readonly inFlight = new Set<Promise<void>>();
   private nextConnId = 1;
   private engineShutdown?: () => void;
+  private engineBuild?: () => Promise<void>;
 
   constructor(factory: ConnFactory, dialectOverride?: string) {
     this.factory = factory;
@@ -99,6 +100,17 @@ export class StorageManager {
 
   public setEngineShutdown(fn: () => void): void {
     this.engineShutdown = fn;
+  }
+
+  public setEngineBuild(fn: () => Promise<void>): void {
+    this.engineBuild = fn;
+  }
+
+  /** Runs database migrations. Call once after construction, before any SDK operations. */
+  public async build(): Promise<void> {
+    if (this.engineBuild) {
+      await this.engineBuild();
+    }
   }
 
   /**

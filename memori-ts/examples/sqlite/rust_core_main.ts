@@ -26,11 +26,11 @@ async function main(): Promise<void> {
   const mem = new Memori({ conn: () => db }).llm.register(client);
   mem.attribution('rust-core-user', 'sqlite-example');
 
-  if (!mem.engine.hasStorage) {
+  if (!mem.config.storage) {
     throw new Error('Storage bridge is not active. Pass conn= to Memori.');
   }
 
-  await mem.engine.build();
+  await mem.config.storage.build();
 
   console.log('\nYou: What is my favorite season?');
   const first = await client.chat.completions.create({

@@ -100,6 +100,7 @@ export class Memori {
       this.config.storage = new StorageManager(options.conn, options.dialect);
       this.engine = new NativeEngine(this.config.storage, options.embeddingModel);
       this.config.storage.setEngineShutdown(this.engine.shutdown.bind(this.engine));
+      this.config.storage.setEngineBuild(this.engine.build.bind(this.engine));
     } else {
       this.engine = new NativeEngine(undefined, options.embeddingModel);
     }
