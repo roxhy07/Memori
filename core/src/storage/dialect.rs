@@ -36,3 +36,15 @@ impl Dialect {
         matches!(self, Dialect::Cockroachdb)
     }
 }
+
+impl std::fmt::Display for Dialect {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
+            Self::Sqlite => "sqlite",
+            Self::Postgresql => "postgresql",
+            Self::Cockroachdb => "cockroachdb",
+            Self::Mysql => "mysql",
+        };
+        write!(f, "{s}")
+    }
+}

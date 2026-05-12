@@ -30,6 +30,8 @@ mod string_i64 {
 pub enum SqlBind {
     #[serde(rename = "null")]
     Null,
+    /// Serialized as a JSON string (not a number) to preserve 64-bit precision through
+    /// JavaScript's number type — required for CockroachDB BigInt primary keys.
     #[serde(rename = "int", with = "string_i64")]
     Int(i64),
     #[serde(rename = "float")]

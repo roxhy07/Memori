@@ -33,6 +33,7 @@ function deserializeBinds(binds: Array<{ t: string; v: unknown }>): SqlBindValue
       case 'bytes':
         return Buffer.from(bind.v as string, 'base64');
       default:
+        console.warn(`[Memori] unknown bind type "${bind.t}" — treating as NULL`);
         return null;
     }
   });
@@ -137,7 +138,11 @@ export class StorageManager {
     for (const [id, { adapter, lastUsed }] of this.connections) {
       if (lastUsed < cutoff) {
         this.connections.delete(id);
-        void Promise.resolve(adapter.close()).catch(() => {});
+        const p = Promise.resolve(adapter.close()).catch((e: unknown) => {
+          console.warn(`[Memori] failed to close orphaned connection ${id}:`, e);
+        });
+        this.inFlight.add(p);
+        void p.finally(() => this.inFlight.delete(p));
       }
     }
   }
@@ -251,6 +256,5 @@ export class StorageManager {
       }
     }
     this.connections.clear();
-    await this.dialectAdapter.close();
   }
 }

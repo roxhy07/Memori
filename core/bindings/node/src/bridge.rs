@@ -31,7 +31,12 @@ impl Inner {
         self.pending.insert(id, tx);
 
         let status = {
-            if let Some(tsfn) = self.storage_call_tsfn.lock().unwrap().as_ref() {
+            if let Some(tsfn) = self
+                .storage_call_tsfn
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .as_ref()
+            {
                 tsfn.call(
                     Ok((id, payload_str)),
                     ThreadsafeFunctionCallMode::NonBlocking,
@@ -135,7 +140,12 @@ impl ConnectionFactory for NodeConnectionFactory {
     }
 
     fn shutdown(&self) {
-        let _ = self.inner.storage_call_tsfn.lock().unwrap().take();
+        let _ = self
+            .inner
+            .storage_call_tsfn
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .take();
     }
 }
 

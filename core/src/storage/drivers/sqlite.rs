@@ -24,6 +24,17 @@ pub fn schema_version_create(
     Ok(())
 }
 
+pub fn entity_get_id(
+    conn: &dyn StorageConnection,
+    external_id: &str,
+) -> Result<Option<i64>, HostStorageError> {
+    let rows = conn.execute(
+        "SELECT id FROM memori_entity WHERE external_id = ?",
+        vec![SqlBind::Text(external_id.to_string())],
+    )?;
+    Ok(rows.first().and_then(|r| read_id(r, "id")))
+}
+
 pub fn entity_create(
     conn: &dyn StorageConnection,
     external_id: &str,

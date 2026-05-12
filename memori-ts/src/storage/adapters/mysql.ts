@@ -21,7 +21,8 @@ function isMysqlConnection(conn: unknown): boolean {
   return (
     conn != null &&
     typeof (conn as MysqlPool).execute === 'function' &&
-    typeof (conn as MysqlPool).query === 'function'
+    typeof (conn as MysqlPool).query === 'function' &&
+    typeof (conn as MysqlPool).getConnection === 'function'
   );
 }
 

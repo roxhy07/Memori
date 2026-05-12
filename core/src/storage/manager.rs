@@ -395,11 +395,26 @@ impl RustStorageManager {
                     let internal_entity_id =
                         self.do_entity_create(conn, &entity_id_str)?.unwrap_or(0);
                     if let Some(content) = op.payload["content"].as_str() {
-                        self.do_entity_fact_create_without_embedding(
-                            conn,
-                            internal_entity_id,
-                            content,
-                        )?;
+                        // Embed if embedder is available — matches Python which always embeds.
+                        // Fall back to embedding-free storage only when no embedder is wired up.
+                        let embeddings = self.embed_texts(vec![content.to_string()]);
+                        if let Some(embedding) =
+                            embeddings.into_iter().next().filter(|e| !e.is_empty())
+                        {
+                            self.do_entity_fact_create(
+                                conn,
+                                internal_entity_id,
+                                &[content.to_string()],
+                                &[embedding],
+                                None,
+                            )?;
+                        } else {
+                            self.do_entity_fact_create_without_embedding(
+                                conn,
+                                internal_entity_id,
+                                content,
+                            )?;
+                        }
                     }
                 }
                 unknown => {
@@ -453,10 +468,17 @@ impl StorageBridge for RustStorageManager {
         limit: usize,
     ) -> Result<Vec<EmbeddingRow>, HostStorageError> {
         self.with_conn(|conn| {
-            let internal_id = self
-                .do_entity_create(conn, entity_id)?
-                .ok_or_else(|| HostStorageError::new("NOT_FOUND", "entity not found after upsert"))?;
-            self.do_entity_fact_get_embeddings(conn, internal_id, limit)
+            let internal_id = match &self.dialect {
+                Dialect::Sqlite => sqlite::entity_get_id(conn, entity_id)?,
+                Dialect::Postgresql | Dialect::Cockroachdb => {
+                    postgresql::entity_get_id(conn, entity_id)?
+                }
+                Dialect::Mysql => mysql::entity_get_id(conn, entity_id)?,
+            };
+            match internal_id {
+                Some(id) => self.do_entity_fact_get_embeddings(conn, id, limit),
+                None => Ok(vec![]),
+            }
         })
     }
 
