@@ -260,9 +260,7 @@ impl RustStorageManager {
         &self,
         conn: &dyn crate::storage::connection::StorageConnection,
         batch: &WriteBatch,
-    ) -> Result<usize, HostStorageError> {
-        let mut written = 0;
-
+    ) -> Result<(), HostStorageError> {
         for op in &batch.ops {
             match op.op_type.as_str() {
                 "conversation_message.create" => {
@@ -411,9 +409,8 @@ impl RustStorageManager {
                     ));
                 }
             }
-            written += 1;
         }
-        Ok(written)
+        Ok(())
     }
 }
 
@@ -480,18 +477,26 @@ impl StorageBridge for RustStorageManager {
             return Ok(WriteAck { written_ops: 0 });
         }
 
+        let op_count = batch.ops.len();
         const MAX_RETRIES: u32 = 5;
+        let mut last_err: Option<HostStorageError> = None;
+
         for attempt in 0..=MAX_RETRIES {
             let conn = self.factory.acquire()?;
-            conn.begin()?;
+
+            if let Err(e) = conn.begin() {
+                conn.close();
+                return Err(e);
+            }
 
             match self.execute_batch_ops(&*conn, batch) {
-                Ok(written) => {
-                    conn.commit()?;
+                Ok(()) => {
+                    if let Err(e) = conn.commit() {
+                        conn.close();
+                        return Err(e);
+                    }
                     conn.close();
-                    return Ok(WriteAck {
-                        written_ops: written,
-                    });
+                    return Ok(WriteAck { written_ops: op_count });
                 }
                 Err(e) => {
                     let _ = conn.rollback();
@@ -505,15 +510,17 @@ impl StorageBridge for RustStorageManager {
                             (50 * 2_u64.pow(attempt)).min(1000),
                         );
                         std::thread::sleep(backoff);
+                        last_err = Some(e);
                         continue;
                     }
 
-                    log::error!("[Memori] WriteBatch failed, rolling back: {e}");
-                    return Ok(WriteAck { written_ops: 0 });
+                    return Err(e);
                 }
             }
         }
-        Ok(WriteAck { written_ops: 0 })
+
+        Err(last_err
+            .unwrap_or_else(|| HostStorageError::new("ERR", "write_batch exhausted retries")))
     }
 
     fn shutdown(&self) {

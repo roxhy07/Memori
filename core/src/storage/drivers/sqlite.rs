@@ -167,7 +167,7 @@ pub fn conversation_messages_read(
     conversation_id: i64,
 ) -> Result<Vec<(String, String)>, HostStorageError> {
     let rows = conn.execute(
-        "SELECT role, content FROM memori_conversation_message WHERE conversation_id = ?",
+        "SELECT role, content FROM memori_conversation_message WHERE conversation_id = ? ORDER BY id",
         vec![SqlBind::Int(conversation_id)],
     )?;
     Ok(rows
