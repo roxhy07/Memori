@@ -94,7 +94,9 @@ export class StorageManager {
     this.factory = factory;
     this.dialectOverride = dialectOverride;
     this.dialectAdapter = Registry.getAdapter(factory);
-    const handle = setInterval(() => this.sweepOrphanedConnections(), SWEEP_INTERVAL_MS);
+    const handle = setInterval(() => {
+      this.sweepOrphanedConnections();
+    }, SWEEP_INTERVAL_MS);
     handle.unref();
     this.sweepHandle = handle;
   }

@@ -190,7 +190,9 @@ describe('MysqlAdapter', () => {
   it('close() does nothing when no transaction is active', () => {
     const { pool } = makeMysqlPool();
     const adapter = new MysqlAdapter(pool);
-    expect(() => { adapter.close(); }).not.toThrow();
+    expect(() => {
+      adapter.close();
+    }).not.toThrow();
   });
 
   it('getDialect() returns "mysql"', () => {

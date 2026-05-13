@@ -53,7 +53,9 @@ impl RustStorageManager {
     /// Acquires a connection, runs `f`, then closes it — even on error.
     fn with_conn<T>(
         &self,
-        f: impl FnOnce(&dyn crate::storage::connection::StorageConnection) -> Result<T, HostStorageError>,
+        f: impl FnOnce(
+            &dyn crate::storage::connection::StorageConnection,
+        ) -> Result<T, HostStorageError>,
     ) -> Result<T, HostStorageError> {
         let conn = self.factory.acquire()?;
         let result = f(&*conn);
@@ -518,7 +520,9 @@ impl StorageBridge for RustStorageManager {
                         return Err(e);
                     }
                     conn.close();
-                    return Ok(WriteAck { written_ops: op_count });
+                    return Ok(WriteAck {
+                        written_ops: op_count,
+                    });
                 }
                 Err(e) => {
                     let _ = conn.rollback();
@@ -528,9 +532,8 @@ impl StorageBridge for RustStorageManager {
                     // 50ms, 100ms, 200ms, 400ms, 800ms (capped at 1000ms).
                     // Production callers should add random jitter via the `rand` crate.
                     if e.code == "40001" && self.dialect.is_cockroachdb() && attempt < MAX_RETRIES {
-                        let backoff = std::time::Duration::from_millis(
-                            (50 * 2_u64.pow(attempt)).min(1000),
-                        );
+                        let backoff =
+                            std::time::Duration::from_millis((50 * 2_u64.pow(attempt)).min(1000));
                         std::thread::sleep(backoff);
                         last_err = Some(e);
                         continue;

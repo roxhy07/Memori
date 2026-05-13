@@ -41,7 +41,7 @@ impl MemoriEngine {
 
         let dialect_enum = dialect
             .parse::<Dialect>()
-            .map_err(|e| Error::from_reason(e))?;
+            .map_err(Error::from_reason)?;
 
         let factory = Arc::new(NodeConnectionFactory::new(storage_call_cb, dialect));
         let storage_manager = Arc::new(RustStorageManager::new(factory.clone(), dialect_enum));
@@ -133,8 +133,7 @@ impl MemoriEngine {
                 .get_conversation_history(&session_id)
                 .map_err(|e| Error::from_reason(e.to_string()))
                 .and_then(|messages| {
-                    serde_json::to_string(&messages)
-                        .map_err(|e| Error::from_reason(e.to_string()))
+                    serde_json::to_string(&messages).map_err(|e| Error::from_reason(e.to_string()))
                 })
         })
         .await

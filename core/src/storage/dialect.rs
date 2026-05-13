@@ -21,7 +21,6 @@ impl std::str::FromStr for Dialect {
 }
 
 impl Dialect {
-
     /// PostgreSQL (and CockroachDB) leave transactions open on error and need
     /// an explicit ROLLBACK before the connection can be reused. SQLite cleans
     /// up automatically; MySQL also requires explicit rollback.

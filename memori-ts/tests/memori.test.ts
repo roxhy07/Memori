@@ -11,6 +11,7 @@ vi.mock('../src/storage/manager.js', () => ({
   StorageManager: vi.fn().mockImplementation(() => ({
     getDialect: vi.fn().mockReturnValue('sqlite'),
     setEngineShutdown: vi.fn(),
+    setEngineBuild: vi.fn(),
     handleStorageCall: vi.fn(),
     close: vi.fn(),
   })),
